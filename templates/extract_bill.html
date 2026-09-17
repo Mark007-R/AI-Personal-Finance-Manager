@@ -5,104 +5,206 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Extract Bill Amount from PDF</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='paper.css') }}">
     <style>
+        /* Palette, fonts and the paper ground come from static/paper.css. */
+
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
 
         body {
-            font-family: 'Roboto', sans-serif;
-            padding: 40px;
+            padding: 48px 16px;
             text-align: center;
-            background-color: #e9f7ef;
-            color: #2e7d32;
+            line-height: 1.6;
+            color: var(--ink);
         }
 
         h1 {
             margin-bottom: 30px;
-            color: #388e3c;
-            font-size: 2.5em;
+            font-family: var(--font-display);
+            font-size: 2.4rem;
+            font-weight: 700;
+            line-height: 1.12;
+            letter-spacing: -.02em;
+            color: var(--ink);
+            text-wrap: balance;
         }
 
         form {
-            margin-bottom: 30px;
-            background: #ffffff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             display: inline-block;
             width: 100%;
             max-width: 500px;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
         }
 
         input[type="file"] {
-            margin-bottom: 15px;
-            padding: 12px;
-            border: 2px solid #4caf50;
-            border-radius: 5px;
-            font-size: 1em;
             width: 100%;
+            margin-bottom: 18px;
+            padding: 12px;
+            font-family: var(--font-body);
+            font-size: .92rem;
+            color: var(--ink-2);
+            background: var(--bg);
+            border: 1.5px dashed var(--line-strong);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: border-color var(--ease), background-color var(--ease), box-shadow var(--ease);
         }
 
-        button {
-            padding: 12px 25px;
-            background-color: #4caf50;
-            color: #ffffff;
-            border: none;
-            border-radius: 5px;
+        input[type="file"]:hover {
+            border-color: var(--accent);
+            background: var(--accent-tint);
+        }
+
+        input[type="file"]:focus-visible {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        input[type="file"]::file-selector-button {
+            margin-right: 12px;
+            padding: 7px 14px;
+            font-family: var(--font-body);
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--ink-2);
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 999px;
             cursor: pointer;
-            font-size: 1.1em;
-            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        /* secondary pill (the Home button) */
+        button {
+            margin: 4px 3px;
+            padding: 11px 24px;
+            font-family: var(--font-body);
+            font-size: .95rem;
+            font-weight: 600;
+            color: var(--ink-2);
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            transition: background-color var(--ease), border-color var(--ease), color var(--ease), transform var(--ease), box-shadow var(--ease);
         }
 
         button:hover {
-            background-color: #388e3c;
+            color: var(--accent);
+            background: var(--accent-tint);
+            border-color: var(--accent);
             transform: translateY(-2px);
         }
 
+        button a {
+            color: inherit;
+        }
+
+        /* primary pill (Upload PDF) */
+        button[type="submit"] {
+            color: var(--on-accent);
+            background: var(--accent);
+            border-color: var(--accent);
+            box-shadow: 0 2px 12px var(--accent-glow);
+        }
+
+        button[type="submit"]:hover {
+            color: var(--on-accent);
+            background: var(--accent-strong);
+            border-color: var(--accent-strong);
+            box-shadow: 0 10px 28px var(--accent-glow);
+        }
+
         #result {
-            margin-top: 30px;
-            font-size: 1.5em;
-            background: #ffffff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             display: inline-block;
             max-width: 500px;
+            margin-top: 10px;
+            padding: 26px 34px;
+            font-family: var(--font-display);
+            font-size: 1.35rem;
+            font-weight: 600;
+            line-height: 1.5;
+            font-variant-numeric: tabular-nums;
+            color: var(--ink);
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+        }
+
+        #result:has(.error) {
+            background: var(--bad-tint);
+            border-color: var(--bad-line);
+            box-shadow: none;
         }
 
         .error {
-            color: #d32f2f;
-            font-size: 1.2em;
+            font-family: var(--font-body);
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--bad);
         }
 
         .debug {
-            margin-top: 30px;
-            padding: 20px;
-            background: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            text-align: left;
-            white-space: pre-wrap;
             max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
+            margin: 30px auto 0;
+            padding: 22px 24px;
+            text-align: left;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .debug h2 {
+            margin-bottom: 12px;
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -.01em;
+            color: var(--ink);
+        }
+
+        .debug pre {
+            padding: 14px 16px;
+            font-family: var(--font-mono);
+            font-size: .8rem;
+            line-height: 1.6;
+            color: var(--ink-2);
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            background: var(--bg-alt);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-sm);
         }
 
         @media (max-width: 600px) {
             body {
-                padding: 20px;
+                padding: 32px 16px;
             }
 
             h1 {
-                font-size: 2em;
+                font-size: 1.9rem;
+            }
+
+            form {
+                padding: 22px;
             }
 
             button {
-                font-size: 1em;
+                font-size: .92rem;
             }
         }
     </style>
@@ -113,7 +215,7 @@
     <form method="post" enctype="multipart/form-data">
         <input type="file" name="pdf" accept=".pdf" required>
         <button type="submit">Upload PDF</button>
-        <button><a href="/" style="text-decoration: none; color:white">Home</a></button>
+        <button><a href="/" style="text-decoration: none; color: inherit">Home</a></button>
     </form>
     <div id="result">
         {% if error_message %}

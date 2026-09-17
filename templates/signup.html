@@ -5,20 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up Page</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='paper.css') }}">
     <style>
-        :root {
-            --primary-green: #4CAF50;
-            --dark-green: #388E3C;
-            --light-green: #C8E6C9;
-            --white: #ffffff;
-            --light-gray: #f0f2f5;
-            --dark-gray: #333;
-        }
+        /* Palette, fonts and the paper ground come from static/paper.css. */
 
         * {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
 
         html {
@@ -26,30 +22,34 @@
         }
 
         body {
-            background: var(--light-gray);
-            font-family: 'Poppins', sans-serif;
-            color: var(--dark-gray);
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            padding: 1.5rem 1rem;
+            line-height: 1.6;
+            color: var(--ink);
         }
 
         .container {
-            max-width: 800px;
-            padding: 1.5rem;
-            background: var(--white);
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            border: 1px solid var(--light-green);
+            width: 100%;
+            max-width: 480px;
+            padding: 2.25rem 2rem 2rem;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
         }
 
         .title {
             margin-bottom: 1.5rem;
             text-align: center;
-            font-size: 1.75rem;
+            font-family: var(--font-display);
+            font-size: 2.3rem;
             font-weight: 700;
-            color: var(--primary-green);
+            line-height: 1.1;
+            letter-spacing: -.02em;
+            color: var(--ink);
         }
 
         .form-group {
@@ -58,38 +58,69 @@
 
         .form-group label {
             display: block;
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
+            margin-bottom: .45rem;
+            font-family: var(--font-mono);
+            font-size: .72rem;
+            font-weight: 600;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--ink-3);
         }
 
         .form-group input {
             width: 100%;
-            padding: 0.6rem;
-            border: 1px solid var(--light-gray);
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
+            padding: .75rem 1rem;
+            font-family: var(--font-body);
+            font-size: 1rem;
+            color: var(--ink);
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-sm);
+            outline: none;
+            transition: border-color var(--ease), box-shadow var(--ease);
+        }
+
+        .form-group input::placeholder {
+            color: var(--placeholder);
         }
 
         .form-group input:focus {
-            border-color: var(--primary-green);
-            box-shadow: 0 0 6px rgba(76, 175, 80, 0.3);
-            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
         }
 
         button {
             width: 100%;
-            height: 45px;
-            border: none;
-            color: var(--white);
-            background: var(--primary-green);
-            border-radius: 0.5rem;
+            margin-top: .5rem;
+            padding: .85rem 1.25rem;
+            font-family: var(--font-body);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--on-accent);
+            background: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 999px;
             cursor: pointer;
-            font-size: 0.875rem;
+            box-shadow: 0 2px 12px var(--accent-glow);
+            transition: background-color var(--ease), border-color var(--ease), transform var(--ease), box-shadow var(--ease);
         }
 
         button:hover {
-            background: var(--dark-green);
-            transform: scale(1.03);
+            background: var(--accent-strong);
+            border-color: var(--accent-strong);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 28px var(--accent-glow);
+        }
+
+        /* the script disables the button while the request is in flight */
+        button:disabled,
+        button:disabled:hover {
+            color: var(--ink-3);
+            background: var(--line-strong);
+            border-color: var(--line-strong);
+            box-shadow: none;
+            transform: none;
+            cursor: not-allowed;
         }
 
         .connect-title,
@@ -98,37 +129,99 @@
             margin-top: 1rem;
         }
 
+        .connect-title {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            margin: 1.75rem 0 1rem;
+            font-family: var(--font-mono);
+            font-size: .7rem;
+            font-weight: 600;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--ink-3);
+        }
+
+        .connect-title::before,
+        .connect-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--line);
+        }
+
         .social-links {
             text-align: center;
             margin-bottom: 1rem;
         }
 
+        /* no font-family here: the .fa class supplies the icon font */
         .social-links a {
-            font-size: 1.25rem;
-            margin: 0 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            margin: 0 .2rem;
+            font-size: 1.05rem;
             text-decoration: none;
-            color: var(--dark-gray);
+            color: var(--ink-2);
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            transition: color var(--ease), background-color var(--ease), border-color var(--ease), transform var(--ease);
         }
 
         .social-links a:hover {
-            color: var(--primary-green);
+            color: var(--accent);
+            background: var(--accent-tint);
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .login-redirect {
+            font-size: .95rem;
+            color: var(--ink-2);
         }
 
         .login-redirect a {
-            color: var(--primary-green);
+            color: var(--accent);
             text-decoration: none;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .login-redirect a:hover {
+            color: var(--accent-strong);
             text-decoration: underline;
         }
 
         .form-message {
             margin-top: 1rem;
+            padding: .7rem 1rem;
             text-align: center;
-            font-size: 0.875rem;
+            font-size: .9rem;
             font-weight: 500;
+            color: var(--ink-2);
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+        }
+
+        .form-message:empty {
+            display: none;
+        }
+
+        /* The page script sets style.color = 'green' | 'red' on #form-message.
+           Map those inline colours onto the paper status colours (JS untouched). */
+        #form-message[style*="green"] {
+            color: var(--ok) !important;
+            background: var(--ok-tint);
+            border-color: var(--ok-line);
+        }
+
+        #form-message[style*="red"] {
+            color: var(--bad) !important;
+            background: var(--bad-tint);
+            border-color: var(--bad-line);
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">

@@ -18,6 +18,7 @@ from datetime import date, timedelta
 import matplotlib
 matplotlib.use("Agg")  # headless
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 import numpy as np
 import pandas as pd
 
@@ -116,31 +117,70 @@ def forecast_table(forecast_response: dict) -> pd.DataFrame:
 # --------------------------------------------------------------------------- #
 # Figures (matplotlib, Agg — testable / embeddable)
 # --------------------------------------------------------------------------- #
+# Paper palette for the charts: the same values as dashboard/ui_theme.py (Pine
+# accent), repeated here so this module stays importable without Streamlit.
+_PAPER = "#fefaf5"
+_CARD = "#fffdfa"
+_INK = "#1c1714"
+_INK_2 = "#57504a"
+_LINE = "#e9dbcd"
+_LINE_STRONG = "#d8c3b2"
+_ACCENT = "#1D6B3A"
+_ACCENT_STRONG = "#16552E"
+_ACCENT_SOFT = "#4C8F63"
+_WARM_NEUTRAL = "#c9a27e"
+_SPEND_CMAP = LinearSegmentedColormap.from_list(
+    "paper_pine", ["#faf2e9", _ACCENT_SOFT, _ACCENT_STRONG])
+
+
+def _paper_axes(fig, ax, title: str, grid_axis: str | None = "y") -> None:
+    """Paper figure, card-coloured plot area, warm hairlines and ink text."""
+    fig.patch.set_facecolor(_PAPER)
+    ax.set_facecolor(_CARD)
+    for side, spine in ax.spines.items():
+        spine.set_color(_LINE_STRONG)
+        if grid_axis and side in ("top", "right"):
+            spine.set_visible(False)
+    ax.tick_params(colors=_LINE_STRONG, labelcolor=_INK_2)
+    ax.xaxis.label.set_color(_INK_2)
+    ax.yaxis.label.set_color(_INK_2)
+    ax.set_title(title, fontsize=11, fontweight="semibold", color=_INK, loc="left", pad=10)
+    if grid_axis:
+        ax.grid(True, axis=grid_axis, color=_LINE, linewidth=0.8)
+        ax.set_axisbelow(True)
+
+
 def fig_category_heatmap(matrix: pd.DataFrame):
     fig, ax = plt.subplots(figsize=(9, 4.5))
     data = matrix.values.astype(float)
-    im = ax.imshow(data, aspect="auto", cmap="YlOrRd")
+    im = ax.imshow(data, aspect="auto", cmap=_SPEND_CMAP)
     ax.set_xticks(range(len(matrix.columns)))
     ax.set_xticklabels(matrix.columns, rotation=40, ha="right", fontsize=8)
     ax.set_yticks(range(len(matrix.index)))
     ax.set_yticklabels(matrix.index, fontsize=8)
-    ax.set_title("Monthly spend by category ($)", fontsize=11, fontweight="bold")
+    _paper_axes(fig, ax, "Monthly spend by category ($)", grid_axis=None)
+    lo = float(data.min()) if data.size else 0.0
+    hi = float(data.max()) if data.size else 0.0
     for i in range(data.shape[0]):
         for j in range(data.shape[1]):
+            dark_cell = hi > lo and (data[i, j] - lo) / (hi - lo) > 0.55
             ax.text(j, i, f"{data[i, j]:.0f}", ha="center", va="center",
-                    fontsize=6, color="black")
-    fig.colorbar(im, ax=ax, shrink=0.8, label="$ spent")
+                    fontsize=6, color=_PAPER if dark_cell else _INK)
+    cbar = fig.colorbar(im, ax=ax, shrink=0.8, label="$ spent")
+    cbar.outline.set_edgecolor(_LINE)
+    cbar.ax.tick_params(colors=_LINE_STRONG, labelcolor=_INK_2)
+    cbar.ax.yaxis.label.set_color(_INK_2)
     fig.tight_layout()
     return fig
 
 
 def fig_balance_trend(trend: pd.DataFrame):
     fig, ax = plt.subplots(figsize=(9, 3.8))
-    ax.plot(trend["date"], trend["balance"], color="#1f77b4", lw=1.8)
-    ax.fill_between(trend["date"], trend["balance"], alpha=0.15, color="#1f77b4")
-    ax.axhline(0, color="grey", lw=0.7, ls="--")
-    ax.set_title("Running balance (per-user)", fontsize=11, fontweight="bold")
+    ax.plot(trend["date"], trend["balance"], color=_ACCENT, lw=1.8)
+    ax.fill_between(trend["date"], trend["balance"], alpha=0.10, color=_ACCENT)
+    ax.axhline(0, color=_LINE_STRONG, lw=0.8, ls="--")
     ax.set_ylabel("$")
+    _paper_axes(fig, ax, "Running balance (per-user)")
     fig.autofmt_xdate()
     fig.tight_layout()
     return fig
@@ -152,13 +192,15 @@ def fig_cashflow_forecast(trend: pd.DataFrame, forecast_df: pd.DataFrame):
     hist = trend.copy()
     hist["month"] = hist["date"].dt.strftime("%Y-%m")
     spend = hist[hist["amount"] < 0].groupby("month")["amount"].sum().abs()
-    ax.bar(range(len(spend)), spend.values, color="#8888cc", label="actual spend")
+    ax.bar(range(len(spend)), spend.values, color=_WARM_NEUTRAL, label="actual spend")
     if not forecast_df.empty and "predicted_spend" in forecast_df:
         n = len(spend)
         ax.bar(range(n, n + len(forecast_df)), forecast_df["predicted_spend"].values,
-               color="#d62728", alpha=0.85, label="forecast")
-    ax.set_title("Cash-flow: monthly spend + next-month forecast", fontsize=11, fontweight="bold")
+               color=_ACCENT, alpha=0.85, label="forecast")
     ax.set_ylabel("$ outflow")
-    ax.legend(fontsize=8)
+    _paper_axes(fig, ax, "Cash-flow: monthly spend + next-month forecast")
+    legend = ax.legend(fontsize=8, frameon=False)
+    for text in legend.get_texts():
+        text.set_color(_INK_2)
     fig.tight_layout()
     return fig

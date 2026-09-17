@@ -21,10 +21,12 @@ import httpx
 import streamlit as st
 
 from dashboard import data as D
+from dashboard import ui_theme
 
 API_URL = os.getenv("FINTRACK_API_URL", "http://localhost:8000")
 
 st.set_page_config(page_title="FinTrack — ML Dashboard", page_icon="💸", layout="wide")
+ui_theme.apply_theme()
 
 
 def _client() -> httpx.Client:
@@ -51,7 +53,7 @@ def login_panel():
                 st.sidebar.warning("User exists — use Sign in.")
             else:
                 st.sidebar.error(r.text)
-        if col2.button("Sign in"):
+        if col2.button("Sign in", type="primary"):
             r = c.post("/auth/token", data={"username": username, "password": password})
             if r.status_code == 200:
                 st.session_state["token"] = r.json()["access_token"]
