@@ -1,0 +1,187 @@
+{% extends '_app.html' %}
+{% from '_macros.html' import icon, glyph with context %}
+{% block title %}Insights{% endblock %}
+
+{% block content %}
+<section class="page-head">
+    <div>
+        <p class="eyebrow">Insights · {{ summary.month }}</p>
+        <h1 class="display">What your money is <em>telling you</em>.</h1>
+        <p class="lede">Forecasts, recurring charges and anything out of the ordinary, worked out from your own transactions only.</p>
+    </div>
+</section>
+
+{% if not has_rows %}
+<section class="card">
+    <div class="empty">
+        <span class="glyph glyph-accent">{{ icon('spark') }}</span>
+        <h2>Insights need a little history</h2>
+        <p>Once a few weeks of transactions are in, this page forecasts your spending, lists subscriptions and flags anything unusual.</p>
+        <div class="head-actions"><button type="button" class="btn btn-primary" data-open="add-dialog">{{ icon('plus') }}Add transaction</button></div>
+    </div>
+</section>
+{% else %}
+{% set s = signals %}
+
+<section class="stat-grid" aria-label="Summary">
+    <article class="kpi">
+        <p class="kpi-label micro">{{ icon('forecast', 'i-sm') }}Forecast · {{ s.forecast.month.split(' ')[0] if s.forecast else 'next month' }}</p>
+        {% if s.forecast %}
+        <p class="kpi-value">{{ s.forecast.predicted|inr(0) }}</p>
+        <div class="kpi-foot">
+            {% if s.forecast.progress is not none %}
+            <div class="meter meter-out" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ s.forecast.progress }}" aria-label="Spent so far against the forecast"><span style="--v: {{ s.forecast.progress }}%"></span></div>
+            <p style="margin-top:.5rem">{{ s.forecast.so_far|inr(0) }} spent so far</p>
+            {% endif %}
+        </div>
+        {% else %}
+        <p class="kpi-value muted">—</p>
+        <p class="kpi-foot">Needs three full months of spending</p>
+        {% endif %}
+    </article>
+    <article class="kpi">
+        <p class="kpi-label micro">{{ icon('repeat', 'i-sm') }}Recurring</p>
+        <p class="kpi-value">{{ s.recurring_monthly|inr(0) }}</p>
+        <p class="kpi-foot">a month across {{ s.recurring|length }} {{ 'charge' if s.recurring|length == 1 else 'charges' }}</p>
+    </article>
+    <article class="kpi">
+        <p class="kpi-label micro">{{ icon('alert', 'i-sm') }}Unusual</p>
+        <p class="kpi-value">{{ s.anomalies|length }}</p>
+        <p class="kpi-foot">{{ 'spend stood out' if s.anomalies|length == 1 else 'spends stood out' }} from your usual</p>
+    </article>
+    <article class="kpi">
+        <p class="kpi-label micro">{{ icon('target', 'i-sm') }}Savings rate · {{ summary.month_short }}</p>
+        {% if summary.savings_rate is not none %}
+        <p class="kpi-value">{{ '%.0f'|format(summary.savings_rate) }}%</p>
+        <p class="kpi-foot">{{ (summary.income - summary.spend)|inr(0, signed=True) }} left from {{ summary.income|inr(0) }} in</p>
+        {% else %}
+        <p class="kpi-value muted">—</p>
+        <p class="kpi-foot">No income in {{ summary.month_short }} yet</p>
+        {% endif %}
+    </article>
+</section>
+
+<section class="grid grid-6-6">
+    <article class="card">
+        <header class="card-head">
+            <div>
+                <h2 class="card-title">Unusual spending</h2>
+                <p class="card-sub">Well above what you normally spend in that category</p>
+            </div>
+        </header>
+        {% if s.anomalies %}
+        <ul>
+            {% for a in s.anomalies %}
+            <li class="flag">
+                {{ glyph(a.category) }}
+                <div class="txn-main">
+                    <p class="txn-desc">{{ a.description }}</p>
+                    <p class="flag-reason">{{ a.reason }}</p>
+                </div>
+                <div style="text-align:right">
+                    <p class="amt">{{ a.amount|inr(0, signed=True) }}</p>
+                    <p class="txn-meta" style="justify-content:flex-end">{{ a.date.strftime('%d %b %Y') }}</p>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty empty-sm">
+            <span class="glyph" style="color:var(--ok)">{{ icon('check') }}</span>
+            <h3>Nothing out of the ordinary</h3>
+            <p>Every charge sits within your usual range for its category.</p>
+        </div>
+        {% endif %}
+    </article>
+
+    <article class="card">
+        <header class="card-head">
+            <div>
+                <h2 class="card-title">Recurring charges</h2>
+                <p class="card-sub">Same merchant, steady amount, regular rhythm</p>
+            </div>
+        </header>
+        {% if s.recurring %}
+        <table class="data-table">
+            <thead><tr><th>Charge</th><th>Every</th><th class="r">Amount</th><th class="r">Next</th></tr></thead>
+            <tbody>
+                {% for rc in s.recurring %}
+                <tr>
+                    <td style="color:var(--ink);font-weight:500">{{ rc.description }}</td>
+                    <td>{{ rc.cadence }}</td>
+                    <td class="r">{{ rc.amount|inr(0) }}</td>
+                    <td class="r">{{ rc.next.strftime('%d %b') if rc.next else '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p class="card-foot muted" style="font-size:.82rem">About {{ s.recurring_monthly|inr(0) }} a month, or {{ (s.recurring_monthly * 12)|inr_compact }} a year.</p>
+        {% else %}
+        <div class="empty empty-sm">
+            <span class="glyph">{{ icon('repeat') }}</span>
+            <h3>No regular charges found</h3>
+            <p>Subscriptions and bills show up here after they've repeated three times.</p>
+        </div>
+        {% endif %}
+    </article>
+</section>
+
+<section class="grid grid-7-5">
+    <article class="card">
+        <header class="card-head">
+            <div>
+                <h2 class="card-title">Spending mix</h2>
+                <p class="card-sub">Money out by category · {{ mix.window }}</p>
+            </div>
+            <p class="micro">{{ mix.total|inr_compact }} total</p>
+        </header>
+        <ol class="bars">
+            {% for it in mix['items'] %}
+            <li class="bar-row">
+                <span class="bar-label">{{ glyph(it.category, 'glyph-sm') }}<span>{{ it.label }}</span></span>
+                <span class="bar-track"><span class="bar-fill" style="--w: {{ it.width }}%; animation-delay: {{ loop.index0 * 0.05 }}s"></span></span>
+                <span class="bar-value">{{ it.amount|inr_compact }}<small>{{ '%.0f'|format(it.share) }}%</small></span>
+            </li>
+            {% endfor %}
+        </ol>
+    </article>
+
+    <div class="stack">
+        <article class="card">
+            <header class="card-head">
+                <div>
+                    <h2 class="card-title">Possible double charges</h2>
+                    <p class="card-sub">Same merchant and amount within two days</p>
+                </div>
+            </header>
+            {% if s.duplicates %}
+            <ul>
+                {% for d in s.duplicates %}
+                <li class="flag">
+                    <span class="glyph glyph-warn">{{ icon('copy') }}</span>
+                    <div class="txn-main">
+                        <p class="txn-desc">{{ d.description }}</p>
+                        <p class="txn-meta">{{ d.prior_date.strftime('%d %b') }}{% if d.date != d.prior_date %} and {{ d.date.strftime('%d %b') }}{% else %}, twice{% endif %}</p>
+                    </div>
+                    <p class="amt">{{ d.amount|inr(0, signed=True) }}</p>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="muted" style="font-size:.9rem">None found — no merchant charged you the same amount twice in quick succession.</p>
+            {% endif %}
+        </article>
+
+        <article class="card">
+            <header class="card-head"><h2 class="card-title">How these are worked out</h2></header>
+            <ul class="engine-list">
+                <li><span class="micro">Categories</span><span><b>{{ s.engines.categorizer }}</b>, plus hints for common Indian merchants</span></li>
+                <li><span class="micro">Unusual</span><span><b>{{ s.engines.anomaly }}</b> over your spending, shown when it is at least 2× your category norm</span></li>
+                <li><span class="micro">Forecast</span><span>{% if s.forecast %}<b>{{ s.forecast.method }}</b> on {{ s.forecast.history_months }} complete months{% else %}Starts after three complete months{% endif %}</span></li>
+                <li><span class="micro">Privacy</span><span>Only your own rows are read; nothing is sent to another service</span></li>
+            </ul>
+        </article>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

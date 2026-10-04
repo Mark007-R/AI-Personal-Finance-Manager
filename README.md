@@ -94,7 +94,21 @@ The champion reaches **98% of DistilBERT's F1 in 1/900th of the fit time**. Sour
 4. **Detect** — IsolationForest for anomalies, grouping for recurring charges, and a duplicate-charge check.
 5. **Forecast** — Prophet over monthly outflows.
 6. **Recommend** — per-user risk profile drives investment suggestions.
-7. **Serve** — FastAPI with Redis caching; the Flask UI and Streamlit ops dashboard call the service.
+7. **Serve** — FastAPI with Redis caching for the API and the Streamlit ops dashboard; the Flask web app runs the same components in-process over each user's MySQL rows.
+
+## The web app
+
+The Flask UI keeps its books in MySQL (`users1` + `transactions`, see [`db/schema.sql`](db/schema.sql)) and works everything else out on read, from the signed-in user's rows only ([`src/insights.py`](src/insights.py)):
+
+| Page | What it shows |
+|---|---|
+| Overview | Balance with its trend, this month's money in / out and savings rate, six months of cash flow, spending by category, recent activity, and a heads-up list |
+| Transactions | The ledger grouped by month, with search, money-in/out and category filters, add and remove |
+| Insights | Spending forecast against what's spent so far, recurring charges with their next date, unusual spends, possible double charges |
+| Scan receipt | Upload a PDF; the extracted total, date and merchant are shown for review before anything is saved |
+| Invest | Risk profile and the three signals behind it, then affordable options ranked by fit |
+
+Categories come from the champion categoriser plus whole-word hints for common Indian merchants (Swiggy, BigBasket, Jio…), since the model was trained on US merchant strings. Forms are POST-only with a per-session CSRF token, and every write is scoped by `user_id`.
 
 ## Infrastructure
 
@@ -104,10 +118,10 @@ The champion reaches **98% of DistilBERT's F1 in 1/900th of the fit time**. Sour
 | Categorisation | scikit-learn TF-IDF + LinearSVC · Optuna |
 | Anomaly / forecast | IsolationForest · Prophet |
 | API | FastAPI, JWT-scoped |
-| UI | Flask · Streamlit ops dashboard |
+| UI | Flask web app · Streamlit ops dashboard |
 | Store | MySQL · Redis |
 | Packaging | Docker Compose |
-| Tests | 66 |
+| Tests | 120 |
 
 ---
 
@@ -120,6 +134,15 @@ python -m src.categorization.train                  # build models/expense_class
 
 uvicorn api:app --port 8000                          # ML API  → http://localhost:8000/docs
 docker compose up                                    # FastAPI + Redis
+```
+
+Web app — needs a MySQL database (`DB_SERVER`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`) and a `SECRET_KEY`:
+
+```bash
+pip install -r requirements.txt
+mysql -h <host> -P <port> -u <user> -p <db> < db/schema.sql   # once
+python db/seed_demo.py                                        # optional: demo account, ~8 months of synthetic data
+flask --app app run                                           # → http://localhost:5000
 ```
 
 Research stack — the experiment scripts under `results/`:

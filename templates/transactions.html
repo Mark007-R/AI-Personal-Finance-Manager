@@ -1,0 +1,76 @@
+{% extends '_app.html' %}
+{% from '_macros.html' import icon, txn_row with context %}
+{% block title %}Transactions{% endblock %}
+
+{% block content %}
+<section class="page-head">
+    <div>
+        <p class="eyebrow">Ledger</p>
+        <h1 class="display">Every rupee, <em>in order</em>.</h1>
+        <p class="lede">{{ count }} {{ 'entry' if count == 1 else 'entries' }}, newest first. Categories are worked out from each description.</p>
+    </div>
+    <div class="head-actions">
+        <a class="btn btn-quiet" href="{{ url_for('extract_bill_bp.extract_bill') }}">{{ icon('scan') }}Scan receipt</a>
+        <button type="button" class="btn btn-primary" data-open="add-dialog">{{ icon('plus') }}Add transaction</button>
+    </div>
+</section>
+
+{% if not months %}
+<section class="card">
+    <div class="empty">
+        <span class="glyph glyph-accent">{{ icon('list') }}</span>
+        <h2>No transactions yet</h2>
+        <p>Add money in or out by hand, or scan a PDF receipt and check the details before saving.</p>
+        <div class="head-actions">
+            <button type="button" class="btn btn-primary" data-open="add-dialog">{{ icon('plus') }}Add transaction</button>
+        </div>
+    </div>
+</section>
+{% else %}
+<div class="toolbar" data-filters>
+    <label class="search">
+        <span class="sr-only">Search transactions</span>
+        {{ icon('search', 'i-sm') }}
+        <input type="search" placeholder="Search descriptions or categories" data-filter-q autocomplete="off">
+    </label>
+    <div class="seg" role="group" aria-label="Show">
+        <button type="button" aria-pressed="true" data-filter-kind="all">All</button>
+        <button type="button" aria-pressed="false" data-filter-kind="income">Money in</button>
+        <button type="button" aria-pressed="false" data-filter-kind="expense">Money out</button>
+    </div>
+    <label>
+        <span class="sr-only">Category</span>
+        <select data-filter-category>
+            <option value="">All categories</option>
+            {% for key, label in categories %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+        </select>
+    </label>
+    <span class="count" data-filter-count aria-live="polite">{{ count }} shown</span>
+</div>
+
+<div data-ledger>
+    {% for m in months %}
+    <section class="month" data-month>
+        <header class="month-head">
+            <h2>{{ m.label }}</h2>
+            <span class="month-net">Net {{ m.net|inr(0, signed=True) }}</span>
+        </header>
+        <div class="card">
+            <ul class="txn-list">
+                {% for r in m.rows %}{{ txn_row(r, deletable=True, next=url_for('transactions')) }}{% endfor %}
+            </ul>
+        </div>
+    </section>
+    {% endfor %}
+</div>
+
+<section class="card" data-filter-empty hidden>
+    <div class="empty empty-sm">
+        <span class="glyph">{{ icon('search') }}</span>
+        <h3>Nothing matches</h3>
+        <p>Try a different word, or clear the filters.</p>
+        <button type="button" class="btn btn-quiet btn-sm" data-filter-reset>Clear filters</button>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

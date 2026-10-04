@@ -1,20 +1,11 @@
-from flask import Blueprint, request, jsonify, render_template
-import os
-import pymysql
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, session
 from werkzeug.security import generate_password_hash
+
+from database import get_db_connection
 
 signup_bp = Blueprint('signup_bp', __name__)
 
-
-def get_db_connection():
-    return pymysql.connect(
-        host=os.getenv('DB_SERVER'),
-        port=int(os.getenv('DB_PORT', '3306')),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASS'),
-        database=os.getenv('DB_NAME'),
-        cursorclass=pymysql.cursors.DictCursor
-    )
+MIN_PASSWORD = 8
 
 
 @signup_bp.route('/signup', methods=['GET', 'POST'])
@@ -26,13 +17,20 @@ def signup():
         confirm_password = request.form.get('confirm-password', '').strip()
 
         if not name or not email or not password or not confirm_password:
-            return jsonify({'success': False, 'message': 'All fields are required'})
+            return jsonify({'success': False, 'message': 'Fill in every field.'})
 
-        if password != confirm_password:
-            return jsonify({'success': False, 'message': 'Passwords do not match'})
+        if len(name) > 120:
+            return jsonify({'success': False, 'message': 'Use a shorter name (120 characters max).'})
 
         if '@' not in email or '.' not in email:
-            return jsonify({'success': False, 'message': 'Invalid email format'})
+            return jsonify({'success': False, 'message': "That email address doesn't look right."})
+
+        if len(password) < MIN_PASSWORD:
+            return jsonify({'success': False,
+                            'message': f'Use at least {MIN_PASSWORD} characters for your password.'})
+
+        if password != confirm_password:
+            return jsonify({'success': False, 'message': "The passwords don't match."})
 
         conn = None
         try:
@@ -41,7 +39,8 @@ def signup():
                 cursor.execute(
                     "SELECT id FROM users1 WHERE email = %s", (email,))
                 if cursor.fetchone():
-                    return jsonify({'success': False, 'message': 'Email already exists'})
+                    return jsonify({'success': False,
+                                    'message': 'An account already uses that email. Try signing in.'})
 
                 hashed_password = generate_password_hash(password)
                 cursor.execute(
@@ -49,12 +48,21 @@ def signup():
                     (name, '', email, hashed_password)
                 )
                 conn.commit()
-                return jsonify({'success': True, 'message': 'User registered successfully'})
+
+                # sign the new user straight in
+                session.clear()
+                session['user_id'] = cursor.lastrowid
+                session['email'] = email
+                session['name'] = name
+                return jsonify({'success': True, 'redirect': url_for('overview')})
         except Exception as e:
             print("Signup error:", str(e))
-            return jsonify({'success': False, 'message': str(e)})
+            return jsonify({'success': False,
+                            'message': "We couldn't create your account just now. Please try again."})
         finally:
             if conn is not None:
                 conn.close()
 
+    if 'user_id' in session:
+        return redirect(url_for('overview'))
     return render_template('signup.html')

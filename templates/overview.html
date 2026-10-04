@@ -1,0 +1,235 @@
+{% extends '_app.html' %}
+{% from '_macros.html' import icon, glyph, money, delta, txn_row with context %}
+{% block title %}Overview{% endblock %}
+
+{% block content %}
+<section class="page-head">
+    <div>
+        <p class="eyebrow">{{ summary.month }}</p>
+        <h1 class="display"><span data-greeting>Welcome back</span>, <em>{{ user_name }}</em>.</h1>
+        <p class="lede">
+            {% if has_rows %}Here's where your money stands — every figure below comes from your own transactions.
+            {% else %}Add a transaction or scan a receipt, and this page fills in with your balance, cash flow and spending.{% endif %}
+        </p>
+    </div>
+    <div class="head-actions">
+        <a class="btn btn-quiet" href="{{ url_for('extract_bill_bp.extract_bill') }}">{{ icon('scan') }}Scan receipt</a>
+        <button type="button" class="btn btn-primary" data-open="add-dialog">{{ icon('plus') }}Add transaction</button>
+    </div>
+</section>
+
+{% if not has_rows %}
+<section class="card">
+    <div class="empty">
+        <span class="glyph glyph-accent">{{ icon('wallet') }}</span>
+        <h2>Your ledger is empty</h2>
+        <p>Start with this month's salary or a recent bill. FinTrack sorts each entry into a category and starts spotting patterns once a few months are in.</p>
+        <div class="head-actions">
+            <button type="button" class="btn btn-primary" data-open="add-dialog">{{ icon('plus') }}Add your first transaction</button>
+            <a class="btn btn-quiet" href="{{ url_for('extract_bill_bp.extract_bill') }}">{{ icon('scan') }}Scan a receipt</a>
+        </div>
+    </div>
+</section>
+{% else %}
+
+{% set note = 'vs same point in ' ~ summary.prev_month_short if summary.partial else 'vs ' ~ summary.prev_month_short %}
+<section class="kpis" aria-label="Key figures">
+    <article class="kpi kpi-hero {{ 'has-spark' if trend }}">
+        <p class="micro">Balance</p>
+        <p class="kpi-value">{{ money(summary.balance) }}</p>
+        <p class="kpi-foot">{{ summary.count }} transactions · money in minus money out</p>
+        {% if trend %}
+        <svg class="spark" viewBox="0 0 {{ trend.width }} {{ trend.height }}" preserveAspectRatio="none" aria-hidden="true">
+            <path class="spark-area" d="{{ trend.area }}"/>
+            <path class="spark-line" d="{{ trend.line }}"/>
+        </svg>
+        {% endif %}
+    </article>
+
+    <article class="kpi">
+        <p class="kpi-label micro"><span class="key key-in"></span>Money in · {{ summary.month_short }}</p>
+        <p class="kpi-value">{{ summary.income|inr(0) }}</p>
+        <p class="kpi-foot">{{ delta(summary.income_change, True, note) }}</p>
+    </article>
+
+    <article class="kpi">
+        <p class="kpi-label micro"><span class="key key-out"></span>Money out · {{ summary.month_short }}</p>
+        <p class="kpi-value">{{ summary.spend|inr(0) }}</p>
+        <p class="kpi-foot">{{ delta(summary.spend_change, False, note) }}</p>
+    </article>
+
+    <article class="kpi">
+        <p class="kpi-label micro">Savings rate · {{ summary.month_short }}</p>
+        {% if summary.savings_rate is not none %}
+        <p class="kpi-value">{{ '%.0f'|format(summary.savings_rate) }}%</p>
+        <div class="kpi-foot">
+            <div class="meter {{ 'meter-bad' if summary.savings_rate < 0 }}" role="meter" aria-valuemin="0" aria-valuemax="100"
+                 aria-valuenow="{{ [summary.savings_rate, 0]|max }}" aria-label="Savings rate">
+                <span style="--v: {{ [[summary.savings_rate, 0]|max, 100]|min }}%"></span>
+            </div>
+            <p style="margin-top:.5rem">of this month's income kept</p>
+        </div>
+        {% else %}
+        <p class="kpi-value muted">—</p>
+        <p class="kpi-foot">No income recorded in {{ summary.month_short }} yet</p>
+        {% endif %}
+    </article>
+</section>
+
+<section class="grid grid-7-5">
+    <article class="card">
+        <header class="card-head">
+            <div>
+                <h2 class="card-title">Cash flow</h2>
+                <p class="card-sub">Money in and out, last six months</p>
+            </div>
+            <ul class="legend" aria-label="Legend">
+                <li><span class="key key-in"></span>Money in</li>
+                <li><span class="key key-out"></span>Money out</li>
+            </ul>
+        </header>
+
+        <div class="cf" role="group" aria-label="Cash flow by month. The same figures are in the table below.">
+            <div class="cf-ticks" aria-hidden="true">
+                {% for t in flow.ticks %}<span style="bottom: {{ t.pct }}%">{{ t.value|inr_compact }}</span>{% endfor %}
+            </div>
+            <div class="cf-plot">
+                <div class="cf-grid" aria-hidden="true">
+                    {% for t in flow.ticks %}<span style="bottom: {{ t.pct }}%"></span>{% endfor %}
+                </div>
+                <div class="cf-cols">
+                    {% for m in flow.months %}
+                    <div class="cf-col {{ 'is-partial' if m.partial }}" tabindex="0"
+                         aria-label="{{ m.long_label }}: in {{ m.income|inr(0) }}, out {{ m.spend|inr(0) }}">
+                        <span class="cf-bar cf-bar-in" style="--h: {{ m.income_pct }}%"></span>
+                        <span class="cf-bar cf-bar-out" style="--h: {{ m.spend_pct }}%"></span>
+                        <div class="tip" role="tooltip">
+                            <strong>{{ m.long_label }}{{ ' · so far' if m.partial }}</strong>
+                            <dl>
+                                <dt><span class="key key-in"></span>In</dt><dd>{{ m.income|inr(0) }}</dd>
+                                <dt><span class="key key-out"></span>Out</dt><dd>{{ m.spend|inr(0) }}</dd>
+                                <dt>Net</dt><dd>{{ m.net|inr(0, signed=True) }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="cf-axis" aria-hidden="true">
+                {% for m in flow.months %}<span class="{{ 'is-partial' if m.partial }}">{{ m.label }}</span>{% endfor %}
+            </div>
+        </div>
+        {% if flow.months[-1].partial %}<p class="chart-note">* {{ flow.months[-1].long_label }} is still in progress.</p>{% endif %}
+
+        <details class="table-view">
+            <summary>{{ icon('list', 'i-sm') }}View as table</summary>
+            <table class="data-table">
+                <thead><tr><th>Month</th><th class="r">In</th><th class="r">Out</th><th class="r">Net</th></tr></thead>
+                <tbody>
+                    {% for m in flow.months|reverse %}
+                    <tr><td>{{ m.long_label }}</td><td class="r">{{ m.income|inr(0) }}</td><td class="r">{{ m.spend|inr(0) }}</td><td class="r">{{ m.net|inr(0, signed=True) }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </details>
+    </article>
+
+    <article class="card">
+        <header class="card-head">
+            <div>
+                <h2 class="card-title">Where it went</h2>
+                <p class="card-sub">Money out by category · {{ mix.window }}</p>
+            </div>
+        </header>
+        {% if mix['items'] %}
+        <ol class="bars">
+            {% for it in mix['items'] %}
+            <li class="bar-row">
+                <span class="bar-label">{{ glyph(it.category, 'glyph-sm') }}<span>{{ it.label }}</span></span>
+                <span class="bar-track"><span class="bar-fill" style="--w: {{ it.width }}%; animation-delay: {{ loop.index0 * 0.05 }}s"></span></span>
+                <span class="bar-value">{{ it.amount|inr_compact }}<small>{{ '%.0f'|format(it.share) }}%</small></span>
+            </li>
+            {% endfor %}
+        </ol>
+        <p class="card-foot muted" style="font-size:.82rem">{{ mix.total|inr(0) }} spent in total over these three months.</p>
+        {% else %}
+        <div class="empty empty-sm"><h3>No spending yet</h3><p>Money out over the last three months shows up here by category.</p></div>
+        {% endif %}
+    </article>
+</section>
+
+<section class="grid grid-7-5">
+    <article class="card">
+        <header class="card-head">
+            <div>
+                <h2 class="card-title">Recent activity</h2>
+                <p class="card-sub">Your latest six entries</p>
+            </div>
+            <a class="link" href="{{ url_for('transactions') }}">See all{{ icon('arrow-right', 'i-sm') }}</a>
+        </header>
+        <ul class="txn-list compact">
+            {% for r in recent %}{{ txn_row(r) }}{% endfor %}
+        </ul>
+    </article>
+
+    <article class="card">
+        <header class="card-head">
+            <div>
+                <h2 class="card-title">Heads up</h2>
+                <p class="card-sub">Patterns spotted in your ledger</p>
+            </div>
+            <a class="link" href="{{ url_for('insights_page') }}">All insights{{ icon('arrow-right', 'i-sm') }}</a>
+        </header>
+        {% set s = signals %}
+        <ul class="signal-list">
+            {% if s.forecast %}
+            <li class="signal">
+                <span class="glyph glyph-sm glyph-accent">{{ icon('forecast') }}</span>
+                <div>
+                    <p class="signal-title">On course for about {{ s.forecast.predicted|inr_compact }} of spending in {{ s.forecast.month.split(' ')[0] }}</p>
+                    {% if s.forecast.progress is not none %}
+                    <div class="meter meter-out" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ s.forecast.progress }}" aria-label="Spent so far against the forecast">
+                        <span style="--v: {{ s.forecast.progress }}%"></span>
+                    </div>
+                    <p class="signal-meta"><span>{{ s.forecast.so_far|inr(0) }} so far</span><span>{{ '%.0f'|format(s.forecast.progress) }}%</span></p>
+                    {% endif %}
+                </div>
+            </li>
+            {% endif %}
+            {% if s.anomalies %}
+            {% set a = s.anomalies[0] %}
+            <li class="signal">
+                <span class="glyph glyph-sm glyph-warn">{{ icon('alert') }}</span>
+                <div>
+                    <p class="signal-title">{{ a.description }} stood out</p>
+                    <p class="signal-body">{{ a.amount|inr(0) }} on {{ a.date.strftime('%d %b') }} — {{ a.reason }}.</p>
+                </div>
+            </li>
+            {% endif %}
+            {% if s.recurring %}
+            <li class="signal">
+                <span class="glyph glyph-sm">{{ icon('repeat') }}</span>
+                <div>
+                    <p class="signal-title">{{ s.recurring|length }} recurring charges, about {{ s.recurring_monthly|inr(0) }} a month</p>
+                    <p class="signal-body">Biggest: {{ s.recurring[0].description }} ({{ s.recurring[0].cadence|lower }}, {{ s.recurring[0].amount|inr(0) }}).</p>
+                </div>
+            </li>
+            {% endif %}
+            {% if s.duplicates %}
+            {% set d = s.duplicates[0] %}
+            <li class="signal">
+                <span class="glyph glyph-sm glyph-warn">{{ icon('copy') }}</span>
+                <div>
+                    <p class="signal-title">Possible double charge</p>
+                    <p class="signal-body">{{ d.description }} took {{ d.amount|inr(0) }} twice ({{ d.prior_date.strftime('%d %b') }}{% if d.date != d.prior_date %} and {{ d.date.strftime('%d %b') }}{% endif %}).</p>
+                </div>
+            </li>
+            {% endif %}
+            {% if not (s.forecast or s.anomalies or s.recurring or s.duplicates) %}
+            <li class="empty empty-sm"><h3>Nothing to flag yet</h3><p>Forecasts, recurring charges and unusual spends appear after a few months of entries.</p></li>
+            {% endif %}
+        </ul>
+    </article>
+</section>
+{% endif %}
+{% endblock %}

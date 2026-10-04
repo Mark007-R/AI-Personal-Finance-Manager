@@ -1,0 +1,46 @@
+{% macro icon(name, cls='') -%}
+<svg class="i {{ cls }}" aria-hidden="true"><use href="#i-{{ name }}"/></svg>
+{%- endmacro %}
+
+{% macro glyph(category, cls='') -%}
+<span class="glyph {{ 'glyph-income' if category == 'income' }} {{ cls }}" aria-hidden="true"><svg class="i"><use href="#c-{{ category }}"/></svg></span>
+{%- endmacro %}
+
+{# Rupees large, paise small: ₹3,02,775<span>.40</span> #}
+{% macro money(value, decimals=2) -%}
+{%- set text = value|inr(decimals) -%}
+{%- if decimals and '.' in text -%}{{ text.rsplit('.', 1)[0] }}<span class="paise">.{{ text.rsplit('.', 1)[1] }}</span>{%- else -%}{{ text }}{%- endif -%}
+{%- endmacro %}
+
+{# change chip: colour = direction x whether up is good; icon + words, never colour alone #}
+{% macro delta(change, up_is_good, note) -%}
+{%- if change is none -%}
+<span class="delta-note">{{ note }}</span>
+{%- else -%}
+{%- set good = (change >= 0) == up_is_good -%}
+<span class="delta {{ 'delta-flat' if change|abs < 0.5 else ('delta-good' if good else 'delta-bad') }}">
+  {{ icon('flat' if change|abs < 0.5 else ('up' if change > 0 else 'down')) }}{{ '%.1f'|format(change|abs) }}%
+</span>
+<span class="delta-note">{{ note }}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro txn_row(r, deletable=False, next=None, show_year=False) -%}
+<li class="txn" data-kind="{{ 'income' if r.amount > 0 else 'expense' }}" data-category="{{ r.category }}"
+    data-search="{{ (r.description ~ ' ' ~ r.category_label)|lower }}">
+  {{ glyph(r.category) }}
+  <div class="txn-main">
+    <p class="txn-desc">{{ r.description }}</p>
+    <p class="txn-meta"><span>{{ r.category_label }}</span><span class="sep"></span><span>{{ r.date.strftime('%d %b' ~ (' %Y' if show_year else '')) }}</span></p>
+  </div>
+  <span class="amt {{ 'amt-in' if r.amount > 0 }}">{{ r.amount|inr(2, signed=True) }}</span>
+  {% if deletable %}
+  <form method="post" action="{{ url_for('delete_transaction', txn_id=r.id) }}"
+        data-confirm="Remove “{{ r.description }}” ({{ r.amount|inr(2, signed=True) }}, {{ r.date.strftime('%d %b %Y') }})?">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="next" value="{{ next or request.path }}">
+    <button type="submit" class="icon-btn danger" aria-label="Remove {{ r.description }}">{{ icon('trash', 'i-sm') }}</button>
+  </form>
+  {% endif %}
+</li>
+{%- endmacro %}
