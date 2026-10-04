@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon with context %}
+{% block title %}Not found{% endblock %}
+
+{% block body %}
+<main class="page" style="display:grid;place-items:center">
+    <div class="card" style="max-width:460px">
+        <div class="empty">
+            <span class="glyph glyph-accent">{{ icon('search') }}</span>
+            <h2>This page isn't here</h2>
+            <p>The link may be old, or the page has moved.</p>
+            <div class="head-actions"><a class="btn btn-primary" href="{{ url_for('overview') }}">Back to overview</a></div>
+        </div>
+    </div>
+</main>
+{% endblock %}

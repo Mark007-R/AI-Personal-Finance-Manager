@@ -1,58 +1,111 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends '_app.html' %}
+{% from '_macros.html' import icon, money with context %}
+{% block title %}Invest{% endblock %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Investment Options</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='paper.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='invest.css') }}">
-</head>
+{% set tiers = [('conservative', 'Conservative'), ('balanced', 'Balanced'), ('aggressive', 'Growth')] %}
+{% set blurb = {
+    'conservative': 'Capital protection first: deposits, bonds and insurance rank highest for you.',
+    'balanced': 'Room for some market exposure alongside steady, low-risk holdings.',
+    'aggressive': 'A strong cushion and steady habits, so higher-return, higher-risk options rank well.',
+} %}
+{% set risk_chip = {'low': 'chip-ok', 'medium': 'chip-warn', 'high': 'chip-bad'} %}
 
-<body>
-    <h1>Available Investment Options</h1>
-    <h2>Total Balance: ₹{{ '{:,.2f}'.format(total_balance or 0.0) }}</h2>
+{% block content %}
+<section class="page-head">
+    <div>
+        <p class="eyebrow">Invest</p>
+        <h1 class="display">Options matched to <em>how you spend</em>.</h1>
+        <p class="lede">Your risk profile comes from your own cash flow, then every option you can afford is ranked by how well it fits.</p>
+    </div>
+</section>
 
-    <div class="container">
-        {% if options %}
-        {% for option in options %}
-        <div class="option-card">
-            <div class="option-header">
-                <h3>{{ option.scheme_name or option.bond_type or option.bank_name or option.plan_name or option.BankName
-                    }}</h3>
-                <span class="type">{{ option.type }}</span>
+<section class="grid grid-5-7" style="margin-top:0">
+    <div class="stack" style="align-content:start">
+        <article class="kpi kpi-hero" style="min-height:0">
+            <p class="micro">Balance available</p>
+            <p class="kpi-value">{{ money(total_balance) }}</p>
+            <p class="kpi-foot">Money in minus money out, all time</p>
+        </article>
+
+        <article class="card">
+            <p class="micro">Your risk profile</p>
+            <div class="profile-score">
+                <span class="profile-label">{{ dict(tiers)[risk_profile] }}</span>
+                <span class="muted num">{{ '%.2f'|format(risk_score) }} / 1</span>
             </div>
-            <ul>
-                <li><strong>Bank Name:</strong> {{ option.bank_name or option.BankName or 'N/A' }}</li>
-                <li><strong>Min Investment:</strong> ₹{{ '{:,.2f}'.format(option.min_investment or
-                    option.minimum_investment or option.premium_range or option.CurrentPrice or 0) }}</li>
+            {% set tier_index = {'conservative': 0, 'balanced': 1, 'aggressive': 2}[risk_profile] %}
+            <div class="scale" role="meter" aria-valuemin="0" aria-valuemax="1" aria-valuenow="{{ risk_score }}" aria-label="Risk tolerance score">
+                <div class="scale-track">
+                    {% for key, label in tiers %}<span class="{{ 'is-on' if loop.index0 <= tier_index }}"></span>{% endfor %}
+                </div>
+                <span class="scale-pin" style="--at: {{ (risk_score * 100)|round(1) }}%"></span>
+            </div>
+            <div class="scale-labels">
+                {% for key, label in tiers %}<span class="{{ 'is-on' if key == risk_profile }}">{{ label }}</span>{% endfor %}
+            </div>
+            <p style="margin-top:14px;font-size:.9rem;color:var(--ink-2)">{{ blurb[risk_profile] }}</p>
 
-                {% if option.interest_rate %}
-                <li><strong>Interest Rate:</strong> {{ option.interest_rate }}%</li>
-                <li><strong>Tenure:</strong> {{ option.tenure_range }}</li>
-                {% elif option.coupon_rate %}
-                <li><strong>Coupon Rate:</strong> {{ option.coupon_rate }}%</li>
-                <li><strong>Risk Level:</strong> {{ option.risk_level }}</li>
-                {% elif option.CurrentPrice %}
-                <li><strong>Current Price:</strong> ₹{{ '{:,.2f}'.format(option.CurrentPrice) }}</li>
-                <li><strong>Market Cap:</strong> ₹{{ '{:,.2f}'.format(option.MarketCap) }}</li>
-                {% elif option.coverage_options %}
-                <li><strong>Coverage Options:</strong> {{ option.coverage_options }}</li>
-                <li><strong>Policy Tenure:</strong> {{ option.policy_tenure }}</li>
-                {% endif %}
-            </ul>
-        </div>
-        {% endfor %}
-        {% else %}
-        <p>No suitable investment options found for your balance.</p>
-        {% endif %}
+            {% if drivers %}
+            <div class="drivers">
+                {% for key, label, weight, note in [
+                    ('savings_rate', 'Savings rate', 50, 'Share of income you keep'),
+                    ('stability', 'Spending steadiness', 30, 'How even your monthly spending is'),
+                    ('regularity', 'Income regularity', 20, 'Months with money coming in'),
+                ] %}
+                <div>
+                    <div class="driver-head"><span>{{ label }} <span class="muted">· {{ weight }}%</span></span><b>{{ '%.0f'|format(drivers[key] * 100) }}%</b></div>
+                    <div class="meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ (drivers[key] * 100)|round }}" aria-label="{{ label }}"><span style="--v: {{ (drivers[key] * 100)|round(1) }}%"></span></div>
+                    <p class="driver-note">{{ note }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="driver-note" style="margin-top:12px">No transactions yet, so you start on the cautious default.</p>
+            {% endif %}
+        </article>
     </div>
 
-    <a href="{{ url_for('dashboard') }}" class="button">Home</a>
-
-</body>
-
-</html>
+    <article>
+        <header class="card-head" style="margin:4px 4px 14px">
+            <div>
+                <h2 class="card-title">Ranked for you</h2>
+                <p class="card-sub">{{ options|length }} of {{ catalog_size }} options fit your balance and profile</p>
+            </div>
+        </header>
+        {% if options %}
+        <ol class="options">
+            {% for o in options %}
+            <li class="option">
+                <div>
+                    <h3><span class="option-rank">{{ loop.index }}</span>{{ o.name }}</h3>
+                    <div class="option-tags">
+                        <span class="chip">{{ o.type }}</span>
+                        <span class="chip {{ risk_chip.get(o.risk, '') }}">{{ o.risk }} risk</span>
+                        <span class="chip">min {{ o.min_investment|inr_compact }}</span>
+                    </div>
+                </div>
+                <div class="option-return">
+                    <b>{{ '%.1f'|format(o.expected_return_pct) }}%</b>
+                    <span>expected / year</span>
+                </div>
+                <div class="option-fit">
+                    <span>Fit</span>
+                    <div class="meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ (o.suitability * 100)|round }}" aria-label="Fit for {{ o.name }}"><span style="--v: {{ (o.suitability * 100)|round(1) }}%"></span></div>
+                    <b>{{ '%.0f'|format(o.suitability * 100) }}%</b>
+                </div>
+            </li>
+            {% endfor %}
+        </ol>
+        {% else %}
+        <section class="card">
+            <div class="empty empty-sm">
+                <span class="glyph">{{ icon('wallet') }}</span>
+                <h3>{{ 'Nothing within reach yet' if has_rows else 'Add some transactions first' }}</h3>
+                <p>{% if has_rows %}Options appear once your balance covers their minimum investment.{% else %}Your balance and risk profile come from your transactions.{% endif %}</p>
+            </div>
+        </section>
+        {% endif %}
+        <p class="disclaimer">{{ icon('info', 'i-sm') }}<span>An illustrative ranking from a scoring model, not financial advice. Check any product's terms before investing.</span></p>
+    </article>
+</section>
+{% endblock %}

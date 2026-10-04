@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, glyph with context %}
+
+{% block body %}
+<main class="auth-shell">
+    <section class="auth-brand">
+        <span class="brand">
+            <span class="brand-mark"><img src="{{ url_for('static', filename='assets/logo1.svg') }}" alt=""></span>
+            <span class="brand-name">FinTrack</span>
+        </span>
+
+        <h1>Know where every <em>rupee</em> goes.</h1>
+        <p>Scan a bill, and FinTrack files it, spots the subscriptions you forgot about, and tells you when a charge looks off.</p>
+
+        <ul class="features">
+            <li><span class="glyph">{{ icon('scan') }}</span>Receipts read in a second, checked by you</li>
+            <li><span class="glyph">{{ icon('spark') }}</span>Spending sorted into categories automatically</li>
+            <li><span class="glyph">{{ icon('forecast') }}</span>Next month's spending forecast from your own history</li>
+        </ul>
+
+        <div class="preview" aria-hidden="true">
+            <ul class="txn-list compact">
+                <li class="txn">{{ glyph('dining') }}<div class="txn-main"><p class="txn-desc">Swiggy order</p><p class="txn-meta">Dining · 12 Sep</p></div><span class="amt">−₹486.00</span></li>
+                <li class="txn">{{ glyph('income') }}<div class="txn-main"><p class="txn-desc">Salary</p><p class="txn-meta">Income · 01 Sep</p></div><span class="amt amt-in">+₹92,000.00</span></li>
+            </ul>
+            <p class="preview-flag">{{ icon('alert', 'i-sm') }}Laptop purchase: 25× your usual shopping spend</p>
+        </div>
+    </section>
+
+    <section class="auth-panel">
+        <div class="auth-card">
+            {% block form %}{% endblock %}
+            <p class="auth-fine">{{ icon('lock', 'i-sm') }}Your ledger is private to your account.</p>
+        </div>
+    </section>
+</main>
+{% endblock %}

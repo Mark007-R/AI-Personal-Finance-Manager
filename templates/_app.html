@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon with context %}
+
+{% set nav = [
+    ('overview', url_for('overview'), 'Overview', 'Overview', 'overview'),
+    ('transactions', url_for('transactions'), 'Transactions', 'Activity', 'list'),
+    ('insights', url_for('insights_page'), 'Insights', 'Insights', 'spark'),
+    ('scan', url_for('extract_bill_bp.extract_bill'), 'Scan receipt', 'Scan', 'scan'),
+    ('invest', url_for('invest_bp.invest'), 'Invest', 'Invest', 'trend'),
+] %}
+
+{% block body %}
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="topbar">
+    <a class="brand" href="{{ url_for('overview') }}" aria-label="FinTrack overview">
+        <span class="brand-mark"><img src="{{ url_for('static', filename='assets/logo1.svg') }}" alt=""></span>
+        <span class="brand-name">FinTrack</span>
+    </a>
+
+    <nav class="nav" aria-label="Main">
+        {% for key, href, label, short, ic in nav %}
+        <a class="nav-link {{ 'is-active' if active == key }}" href="{{ href }}" title="{{ label }}"
+           {% if active == key %}aria-current="page"{% endif %}>{{ icon(ic) }}<span>{{ label }}</span></a>
+        {% endfor %}
+    </nav>
+
+    <div class="topbar-actions">
+        <button type="button" class="btn btn-primary btn-sm" data-open="add-dialog" aria-label="Add transaction">
+            {{ icon('plus') }}<span>Add</span>
+        </button>
+        <details class="user-menu">
+            <summary class="avatar" aria-label="Account menu">{{ user_initial }}</summary>
+            <div class="menu">
+                <div class="menu-head"><strong>{{ user_name }}</strong><span>{{ user_email }}</span></div>
+                <a class="menu-item" href="{{ url_for('transactions') }}">{{ icon('list') }}All transactions</a>
+                <a class="menu-item danger" href="{{ url_for('logout') }}">{{ icon('logout') }}Log out</a>
+            </div>
+        </details>
+    </div>
+</header>
+
+<main id="main" class="page">
+    {% if db_error %}
+    <div class="banner banner-warn" role="alert">{{ icon('alert') }}<span>{{ db_error }}</span></div>
+    {% endif %}
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="foot">
+    <span>FinTrack · {{ year }}</span>
+    <span>Demo data is synthetic or public</span>
+</footer>
+
+<nav class="tabbar" aria-label="Main">
+    {% for key, href, label, short, ic in nav %}
+    <a class="{{ 'is-active' if active == key }}" href="{{ href }}" {% if active == key %}aria-current="page"{% endif %}>{{ icon(ic) }}<span>{{ short }}</span></a>
+    {% endfor %}
+</nav>
+
+{# ---- new transaction ---- #}
+<dialog id="add-dialog" class="dialog" aria-labelledby="add-title">
+    <form method="post" action="{{ url_for('add_transaction') }}" data-category-url="{{ url_for('category_hint') }}" class="add-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <div class="dialog-head">
+            <h2 id="add-title">New transaction</h2>
+            <button type="button" class="icon-btn" data-close aria-label="Close">{{ icon('x') }}</button>
+        </div>
+
+        <div class="seg" role="radiogroup" aria-label="Transaction type">
+            <label><input type="radio" name="kind" value="expense" checked><span>{{ icon('up', 'i-sm') }}Money out</span></label>
+            <label><input type="radio" name="kind" value="income"><span>{{ icon('down', 'i-sm') }}Money in</span></label>
+        </div>
+
+        <label class="amount-hero">
+            <span class="sr-only">Amount</span>
+            <span class="cur" aria-hidden="true">₹</span>
+            <input type="number" name="amount" step="0.01" min="0.01" max="9999999999" inputmode="decimal" placeholder="0.00" required>
+        </label>
+
+        <div class="field">
+            <label for="add-desc">Description</label>
+            <input id="add-desc" name="description" maxlength="255" placeholder="e.g. Swiggy order, Salary, Jio recharge" autocomplete="off" required>
+            <p class="cat-hint" data-category-hint aria-live="polite"></p>
+        </div>
+        <div class="field">
+            <label for="add-date">Date</label>
+            <input id="add-date" type="date" name="date" value="{{ today_iso }}" required>
+        </div>
+
+        <div class="dialog-actions">
+            <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+            <button type="submit" class="btn btn-primary">{{ icon('check') }}Save</button>
+        </div>
+    </form>
+</dialog>
+
+{# ---- confirm (used by forms with data-confirm) ---- #}
+<dialog id="confirm-dialog" class="dialog" aria-labelledby="confirm-title">
+    <div class="dialog-body">
+        <div class="dialog-head">
+            <h2 id="confirm-title">Remove transaction?</h2>
+            <button type="button" class="icon-btn" data-close aria-label="Close">{{ icon('x') }}</button>
+        </div>
+        <p class="confirm-text" data-confirm-text></p>
+        <div class="dialog-actions">
+            <button type="button" class="btn btn-ghost" data-close>Keep it</button>
+            <button type="button" class="btn btn-danger" data-confirm-ok>{{ icon('trash') }}Remove</button>
+        </div>
+    </div>
+</dialog>
+
+<div class="toasts" aria-live="polite">
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+    <div class="toast toast-{{ category }}" role="status">
+        {{ icon({'success': 'check', 'warning': 'alert', 'danger': 'alert'}.get(category, 'info')) }}
+        <span>{{ message }}</span>
+        <button type="button" class="icon-btn" data-dismiss aria-label="Dismiss">{{ icon('x', 'i-sm') }}</button>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

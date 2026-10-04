@@ -10,28 +10,18 @@ Day-5 fixes (audit findings):
   * Connector consistency: switched from ``mysql.connector`` to ``pymysql`` (used
     everywhere else in the app).
 
-The route signature/endpoint is unchanged so ``invest.html`` keeps working; the
-template additionally receives ``risk_profile`` / ``risk_score`` for display.
+The template receives the ranked options in the recommender's normalised shape
+(name / type / min_investment / expected_return_pct / risk / suitability) plus the
+risk profile, its score and the three drivers behind it.
 """
 from flask import Blueprint, render_template, session, redirect, url_for
-import os
 import pymysql
 
+from database import get_db_connection
 from src.reco.investments import recommend_for_user, DEFAULT_CATALOG
 
 # Define Blueprint
 invest_bp = Blueprint('invest_bp', __name__)
-
-
-def get_db_connection():
-    return pymysql.connect(
-        host=os.getenv('DB_SERVER', 'localhost'),
-        port=int(os.getenv('DB_PORT', '3306')),
-        user=os.getenv('DB_USER', 'root'),
-        password=os.getenv('DB_PASS', 'pass123'),
-        database=os.getenv('DB_NAME', 'finase'),
-        cursorclass=pymysql.cursors.DictCursor,
-    )
 
 
 def _load_catalog(cursor):
@@ -70,29 +60,37 @@ def _load_catalog(cursor):
     return catalog or DEFAULT_CATALOG
 
 
-@invest_bp.route('/invest', methods=['GET', 'POST'], endpoint='invest')
+@invest_bp.route('/invest', methods=['GET'], endpoint='invest')
 def invest():
     if 'user_id' not in session:
         return redirect(url_for('login_bp.login'))
     user_id = session['user_id']
 
-    conn = get_db_connection()
+    db_error = None
+    txns, catalog = [], DEFAULT_CATALOG
+    conn = None
     try:
-        cursor = conn.cursor()
-        # Per-user transactions only (multi-tenancy fix) — date is needed for the
-        # risk profile, so we pull the rows rather than just SUM(amount).
-        cursor.execute(
-            "SELECT amount, date FROM transactions WHERE user_id = %s", (user_id,))
-        txns = [{"amount": float(r["amount"]), "date": str(r.get("date"))}
-                for r in cursor.fetchall()]
-        catalog = _load_catalog(cursor)
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            # Per-user transactions only (multi-tenancy fix) — date is needed for the
+            # risk profile, so we pull the rows rather than just SUM(amount).
+            cursor.execute(
+                "SELECT amount, date FROM transactions WHERE user_id = %s", (user_id,))
+            txns = [{"amount": float(r["amount"]), "date": str(r.get("date"))}
+                    for r in cursor.fetchall()]
+            catalog = _load_catalog(cursor)
+    except pymysql.MySQLError:
+        db_error = "We couldn't reach the database just now, so your balance may be missing."
     finally:
-        cursor.close()
-        conn.close()
+        if conn is not None:
+            conn.close()
 
     rec = recommend_for_user(txns, catalog=catalog)
-    return render_template('invest.html',
+    return render_template('invest.html', active='invest', db_error=db_error,
+                           has_rows=bool(txns),
                            options=rec["options"],
                            total_balance=rec["total_balance"],
                            risk_profile=rec["risk_profile"],
-                           risk_score=rec["risk_score"])
+                           risk_score=rec["risk_score"],
+                           drivers=rec["drivers"],
+                           catalog_size=len(catalog))

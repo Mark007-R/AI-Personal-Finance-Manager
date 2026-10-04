@@ -1,26 +1,14 @@
-from flask import Blueprint, render_template, request, session, redirect, url_for
+from flask import Blueprint, current_app, render_template, request, session, redirect, url_for
 import os
 import shutil
 import subprocess
 import tempfile
-import pymysql
 
 from src.extraction import extract_fields
+from src.insights import suggest_category, CATEGORY_LABELS
 
 extract_bill_bp = Blueprint(
     'extract_bill_bp', __name__, template_folder='templates')
-
-DB_CONFIG = {
-    'host': os.getenv('DB_SERVER'),
-    'port': int(os.getenv('DB_PORT', '3306')),
-    'user': os.getenv('DB_USER'),
-    'password': os.getenv('DB_PASS'),
-    'database': os.getenv('DB_NAME')
-}
-
-
-def get_db_connection():
-    return pymysql.connect(**DB_CONFIG)
 
 
 def _resolve_pdftotext():
@@ -81,8 +69,8 @@ def find_bill_details(text):
     Day-5 change: delegates to the Day-2 champion extractor (`rules_smart`,
     amount-acc 0.58 / date-acc 0.87 vs the old regex's 0.15 / 0.49). The naive
     first-decimal regex is retained inside the extractor purely as a fallback,
-    so the (amount, date) return signature is unchanged and the Flask route and
-    every caller keep working.
+    so the (amount, date) return signature is unchanged for every caller. (The
+    scan route now reads all three fields via `extract_fields` for its review form.)
     """
     res = extract_fields(text)
     amount = float(res.get('amount') or 0.0)
@@ -92,48 +80,48 @@ def find_bill_details(text):
 
 @extract_bill_bp.route('/extract_bill', methods=['GET', 'POST'])
 def extract_bill():
+    """Scan a PDF receipt, then let the user review the fields before saving.
+
+    Nothing is written here: the review form posts to the normal add-transaction
+    route, so a misread amount or a missing date never lands in the ledger.
+    """
     if 'user_id' not in session:
         return redirect(url_for('login_bp.login'))
+    if request.method == 'GET':
+        return render_template('extract_bill.html', active='scan')
 
-    bill_amount = ''
-    bill_date = ''
-    error_message = ''
-    debug_text = ''
+    file = request.files.get('pdf')
+    if not file or not file.filename:
+        return render_template('extract_bill.html', active='scan',
+                               error_message='Choose a PDF receipt to scan.')
+    if not file.filename.lower().endswith('.pdf'):
+        return render_template('extract_bill.html', active='scan',
+                               error_message='Only PDF receipts can be scanned for now.')
 
-    if request.method == 'POST':
-        if 'pdf' not in request.files:
-            error_message = 'No file uploaded.'
-        else:
-            file = request.files['pdf']
-            if file and file.filename.endswith('.pdf'):
-                temp_path = os.path.join('temp', file.filename)
-                os.makedirs('temp', exist_ok=True)
-                file.save(temp_path)
-                try:
-                    text = extract_text_from_pdf(temp_path)
-                    debug_text = text
-                    amount, date = find_bill_details(text)
+    # A server-chosen temp name, so the uploaded filename never touches the filesystem.
+    fd, temp_path = tempfile.mkstemp(suffix='.pdf')
+    os.close(fd)
+    try:
+        file.save(temp_path)
+        text = extract_text_from_pdf(temp_path)
+    except Exception:
+        current_app.logger.exception('receipt text extraction failed')
+        return render_template('extract_bill.html', active='scan',
+                               error_message="We couldn't read any text in that PDF. Scanned "
+                                             "photos aren't supported yet, so try a PDF bill or invoice.")
+    finally:
+        os.remove(temp_path)
 
-                    bill_amount = amount
-                    bill_date = date
-
-                    # Save to DB — scoped to the logged-in user (multi-tenancy fix).
-                    conn = get_db_connection()
-                    with conn.cursor() as cursor:
-                        cursor.execute(
-                            "INSERT INTO transactions (user_id, description, amount, date) "
-                            "VALUES (%s, %s, %s, %s)",
-                            (session['user_id'], 'Bill', amount, date)
-                        )
-                        conn.commit()
-                    conn.close()
-                except Exception as e:
-                    error_message = str(e)
-                finally:
-                    os.remove(temp_path)
-
-    return render_template('extract_bill.html',
-                           bill_amount=bill_amount,
-                           bill_date=bill_date,
-                           error_message=error_message,
-                           debug_text=debug_text)
+    fields = extract_fields(text)
+    merchant = (fields.get('merchant') or '').strip()
+    description = merchant.title() if merchant.isupper() else merchant
+    category = suggest_category(description) if description else None
+    review = {
+        'amount': f"{abs(float(fields.get('amount') or 0)):.2f}" if fields.get('amount') else '',
+        'date': fields.get('date') or '',
+        'description': description[:255] or 'Receipt',
+        'category_label': CATEGORY_LABELS.get(category) if category else None,
+        'found': {k: bool(fields.get(k)) for k in ('amount', 'date', 'merchant')},
+    }
+    return render_template('extract_bill.html', active='scan', review=review,
+                           debug_text=text, filename=os.path.basename(file.filename))

@@ -1,11 +1,10 @@
 /* ==========================================================================
    FinTrack paper — the one token block every FinTrack page shares.
 
-   Linked FIRST by every template (login, signup, main, extract_bill,
-   give_option, invest) and by the root index.html, so style.css, index.css,
-   invest.css, style2.css and the inline <style> blocks all read one palette.
-   Look: mark.dev paper (Mark007-R.github.io). Only the ACCENT block is
-   project-specific — FinTrack is Pine.
+   Linked FIRST by every page (templates/base.html, the legacy give_option.html
+   and the root index.html), so app.css, index.css and style2.css all read one
+   palette. Look: mark.dev paper (Mark007-R.github.io). Only the ACCENT and
+   SERIES blocks are project-specific — FinTrack is Pine.
    ========================================================================== */
 
 :root {
@@ -39,6 +38,12 @@
   --accent-glow: rgba(29, 107, 58, .14);
   --accent-line: rgba(29, 107, 58, .24);
   --on-accent: #fefaf5;
+
+  /* SERIES — chart identity. Money in is Pine, money out is Ochre (validated as a
+     pair: colour-blind ΔE 14.2, ≥3:1 on the card), used for marks only, never text. */
+  --series-in: #1D6B3A;
+  --series-out: #C08532;
+  --series-out-tint: rgba(192, 133, 50, .12);
 
   /* status colours — same meaning in every project, always on their tint */
   --ok: #3f7a3a;    --ok-tint: rgba(63, 122, 58, .10);    --ok-line: rgba(63, 122, 58, .25);

@@ -54,7 +54,7 @@ def _parse_date(s):
 def risk_profile(transactions: list[dict]) -> tuple[float, str]:
     """Derive a [0,1] risk-tolerance score and a label from a user's own txns.
 
-    Higher score => higher risk tolerance. Drivers:
+    Higher score => higher risk tolerance. Drivers (see `risk_drivers`):
       * savings rate (income vs spend) — more cushion -> more tolerance
       * spend volatility (CV of monthly outflow) — steadier -> more tolerance
       * income regularity (# of inflow months) — more regular -> more tolerance
@@ -62,6 +62,16 @@ def risk_profile(transactions: list[dict]) -> tuple[float, str]:
     if not transactions:
         return 0.3, "conservative"
 
+    d = risk_drivers(transactions)
+    score = 0.5 * d["savings_rate"] + 0.3 * d["stability"] + 0.2 * d["regularity"]
+    score = round(float(max(0.0, min(1.0, score))), 3)
+    label = "aggressive" if score >= 0.66 else "balanced" if score >= 0.4 else "conservative"
+    return score, label
+
+
+def risk_drivers(transactions: list[dict]) -> dict:
+    """The three [0,1] signals `risk_profile` blends (0.5 / 0.3 / 0.2), exposed so
+    the UI can show why a user got their profile."""
     inflow = sum(float(t["amount"]) for t in transactions if float(t["amount"]) > 0)
     outflow = sum(-float(t["amount"]) for t in transactions if float(t["amount"]) < 0)
 
@@ -89,10 +99,7 @@ def risk_profile(transactions: list[dict]) -> tuple[float, str]:
                     for t in transactions if _parse_date(t.get("date"))})
     regularity = (len(inflow_months) / n_months) if n_months else 0.0
 
-    score = 0.5 * savings_rate + 0.3 * stability + 0.2 * regularity
-    score = round(float(max(0.0, min(1.0, score))), 3)
-    label = "aggressive" if score >= 0.66 else "balanced" if score >= 0.4 else "conservative"
-    return score, label
+    return {"savings_rate": savings_rate, "stability": stability, "regularity": regularity}
 
 
 def _balance_from_txns(transactions: list[dict]) -> float:
@@ -131,4 +138,6 @@ def recommend_for_user(transactions: list[dict], total_balance: float | None = N
     balance = total_balance if total_balance is not None else _balance_from_txns(transactions)
     score, label = risk_profile(transactions)
     return {"total_balance": round(float(balance), 2), "risk_profile": label,
-            "risk_score": score, "options": recommend(balance, score, catalog)}
+            "risk_score": score,
+            "drivers": risk_drivers(transactions) if transactions else None,
+            "options": recommend(balance, score, catalog)}
