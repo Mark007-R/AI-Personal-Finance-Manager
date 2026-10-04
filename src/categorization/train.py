@@ -18,7 +18,7 @@ from collections import defaultdict
 import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DATA = os.path.join(ROOT, "data", "eval", "transactions.csv")
+DATA = os.path.join(ROOT, "data", "transactions.csv")
 MODEL_DIR = os.path.join(ROOT, "models")
 MODEL_PATH = os.path.join(MODEL_DIR, "expense_classifier.joblib")
 SEED = 20260627  # identical to run_day3_categorize.py for parity

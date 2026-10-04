@@ -20,7 +20,7 @@ if ROOT not in sys.path:
 @pytest.fixture(scope="session")
 def eval_receipts() -> list[dict]:
     """The first few real SROIE receipts with ground-truth amount/date/merchant."""
-    path = os.path.join(ROOT, "data", "eval", "receipts.jsonl")
+    path = os.path.join(ROOT, "tests", "fixtures", "receipts.jsonl")
     if not os.path.exists(path):
         pytest.skip("eval receipts not present")
     with open(path, encoding="utf-8") as f:

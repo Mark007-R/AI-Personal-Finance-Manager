@@ -1,6 +1,0 @@
-method,n,amount_acc,date_acc,merchant_acc,exact_match_amt_date,sec_per_doc
-regex (baseline),100,0.15,0.49,0.0,0.07,0.0002
-rules_basic (pdfplumber+rules),100,0.54,0.87,0.0,0.48,0.0001
-rules_smart (keyword-anchored),100,0.58,0.87,0.77,0.48,0.0002
-"donut-cord-v2 (deep, rendered img)",50,0.36,0.0,0.0,0.0,17.3762
-"llm_zeroshot (Claude, OCR text)",20,1.0,0.85,0.95,0.85,1.8

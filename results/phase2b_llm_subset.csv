@@ -1,7 +1,0 @@
-method,n_subset,macro_f1,accuracy
-keyword,60,0.6464,0.6
-tfidf_lgbm,60,0.8387,0.8333
-tfidf_linsvc,60,0.9832,0.9833
-sbert_lgbm,60,0.9478,0.95
-distilbert,60,1.0,1.0
-llm_zeroshot (Claude),60,1.0,1.0

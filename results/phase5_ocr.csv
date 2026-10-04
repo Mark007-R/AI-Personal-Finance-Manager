@@ -1,6 +1,0 @@
-track,variant,n,amount_acc,date_acc,merchant_acc,ocr_mode
-ocr,gold_text,60,0.7167,0.8333,0.7167,calibrated OCR-noise model (simulated)
-ocr,clean_scan,60,0.65,0.7333,0.7167,calibrated OCR-noise model (simulated)
-ocr,phone_photo,60,0.5833,0.45,0.5,calibrated OCR-noise model (simulated)
-ocr,faded,60,0.3333,0.3333,0.3833,calibrated OCR-noise model (simulated)
-ocr,rotated,60,0.35,0.2167,0.2667,calibrated OCR-noise model (simulated)
