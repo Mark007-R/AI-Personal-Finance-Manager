@@ -212,3 +212,22 @@ def test_receipt_scan_rejects_non_pdf(client):
     r = client.post("/extract_bill", base_url=HTTPS, content_type="multipart/form-data", data={
         "csrf_token": _csrf(client, "/extract_bill"), "pdf": (io.BytesIO(b"hi"), "notes.txt")})
     assert "Only PDF receipts" in r.get_data(as_text=True)
+
+
+# ---------------------------------------------------------------- database
+@pytest.mark.parametrize("ca,expected", [
+    (None, {}),
+    ("/etc/ssl/certs/ca-certificates.crt",
+     {"ssl_ca": "/etc/ssl/certs/ca-certificates.crt", "ssl_verify_cert": True,
+      "ssl_verify_identity": True}),
+])
+def test_tls_is_used_only_when_a_ca_bundle_is_configured(monkeypatch, ca, expected):
+    import database
+    seen = {}
+    monkeypatch.setattr(database.pymysql, "connect", lambda **kw: seen.update(kw))
+    if ca:
+        monkeypatch.setenv("DB_SSL_CA", ca)
+    else:
+        monkeypatch.delenv("DB_SSL_CA", raising=False)
+    database.get_db_connection()
+    assert {k: v for k, v in seen.items() if k.startswith("ssl")} == expected

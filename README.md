@@ -136,7 +136,7 @@ uvicorn api:app --port 8000                          # ML API  → http://localh
 docker compose up                                    # FastAPI + Redis
 ```
 
-Web app — needs a MySQL database (`DB_SERVER`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`) and a `SECRET_KEY`:
+Web app — needs a MySQL database (`DB_SERVER`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`) and a `SECRET_KEY`. For a host that requires TLS, such as TiDB Cloud, also set `DB_SSL_CA` to a CA bundle (e.g. `/etc/ssl/certs/ca-certificates.crt`):
 
 ```bash
 pip install -r requirements.txt
