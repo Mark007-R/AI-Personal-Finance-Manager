@@ -25,7 +25,7 @@ CATEGORY_LABELS = {
     "health": "Health", "shopping": "Shopping", "income": "Income", "other": "Other",
 }
 
-# The shipped categorizer was trained on US merchant strings (data/eval), while the
+# The shipped categorizer was trained on US merchant strings (data/), while the
 # web app keeps its books in rupees, so everyday Indian merchants would otherwise
 # land in "other". These whole-word hints run before the model; the model and its
 # measured results are untouched.

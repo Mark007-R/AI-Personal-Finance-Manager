@@ -8,6 +8,12 @@ Each component was benchmarked against the simplest thing that could work **and*
 
 > Data discipline: every experiment uses **public** (SROIE receipts) or **synthetic** transaction data. No real personal financial data is used anywhere.
 
+## Demo
+
+[![FinTrack demo: overview, transactions, insights, receipt scanning and investing](assets/demo-poster.jpg)](assets/Demo.mp4)
+
+Watch the [82-second demo video](assets/Demo.mp4), recorded on the live app: the overview, searching and adding transactions, insights, scanning a receipt and reviewing it before saving, and the investing page.
+
 ---
 
 ## Architecture
@@ -30,7 +36,7 @@ The categoriser was tested on 100 held-out transactions deliberately split into 
 
 **The free model ties the LLM perfectly on merchants it has seen — and then falls *below the keyword floor* on ones it hasn't.** 0.2418 against the keyword scan's 0.3408. It fails silently and confidently on unseen brands.
 
-That is why production keeps an LLM fallback for low-confidence and novel merchants rather than shipping the champion alone. Source: [`results/phase6_frontier.json`](results/phase6_frontier.json)
+That is why production keeps an LLM fallback for low-confidence and novel merchants rather than shipping the champion alone. Source: [`results/phase6_frontier.json`](https://github.com/Mark007-R/AI-Personal-Finance-Manager/blob/b7ff703a10c266909f6144652b498482464dc42c/results/phase6_frontier.json)
 
 ### Nothing in the feature stack fixes it
 
@@ -42,7 +48,7 @@ That is why production keeps an LLM fallback for low-confidence and novel mercha
 | S4 + Optuna tuning | 0.6759 | 1.0000 | 0.2418 |
 | S5 + disambiguation override | 0.6759 | 1.0000 | 0.2418 |
 
-Word+char features and tuning **perfect** the in-distribution fit (1.0000) while making macro-F1 *worse*. Nothing lifts novel-merchant F1 past ~0.29 — that is the out-of-vocabulary ceiling for TF-IDF. Source: [`results/phase6_frontier.json`](results/phase6_frontier.json)
+Word+char features and tuning **perfect** the in-distribution fit (1.0000) while making macro-F1 *worse*. Nothing lifts novel-merchant F1 past ~0.29 — that is the out-of-vocabulary ceiling for TF-IDF. Source: [`results/phase6_frontier.json`](https://github.com/Mark007-R/AI-Personal-Finance-Manager/blob/b7ff703a10c266909f6144652b498482464dc42c/results/phase6_frontier.json)
 
 ### Receipt extraction
 
@@ -56,7 +62,7 @@ Word+char features and tuning **perfect** the in-distribution fit (1.0000) while
 
 The rules champion recovers most of the regex's error at zero cost and ~10,000× the speed; the LLM is better still but is kept as a fallback, not the default.
 
-A separate error analysis found the dominant failure was GST two-column totals — patching it lifted amount accuracy **0.58 → 0.83** on the development set, fixing 26 receipts. Source: [`results/phase6_frontier.json`](results/phase6_frontier.json) · [`results/phase4_extraction.json`](results/phase4_extraction.json)
+A separate error analysis found the dominant failure was GST two-column totals — patching it lifted amount accuracy **0.58 → 0.83** on the development set, fixing 26 receipts. Source: [`results/phase6_frontier.json`](https://github.com/Mark007-R/AI-Personal-Finance-Manager/blob/b7ff703a10c266909f6144652b498482464dc42c/results/phase6_frontier.json) · [`results/phase4_extraction.json`](https://github.com/Mark007-R/AI-Personal-Finance-Manager/blob/b7ff703a10c266909f6144652b498482464dc42c/results/phase4_extraction.json)
 
 ### Categoriser, in-distribution
 
@@ -70,19 +76,19 @@ A separate error analysis found the dominant failure was GST two-column totals �
 | SBERT + LightGBM | 0.9388 | 0.9389 | 18.7 s |
 | DistilBERT fine-tune (ceiling) | 0.9943 | 0.9944 | 71.7 s |
 
-The champion reaches **98% of DistilBERT's F1 in 1/900th of the fit time**. Source: [`results/phase2b_categorize.csv`](results/phase2b_categorize.csv)
+The champion reaches **98% of DistilBERT's F1 in 1/900th of the fit time**. Source: [`results/phase2b_categorize.csv`](https://github.com/Mark007-R/AI-Personal-Finance-Manager/blob/b7ff703a10c266909f6144652b498482464dc42c/results/phase2b_categorize.csv)
 
 ### Analytics
 
 | Component | Result | Source |
 |---|---|---|
-| Anomaly detection | IsolationForest **AP 0.979**, P@20 0.95 — vs robust z-score AP 0.400 and STL residual AP 0.256 | [`phase2c_anomaly_forecast.csv`](results/phase2c_anomaly_forecast.csv) |
+| Anomaly detection | IsolationForest **AP 0.979**, P@20 0.95 — vs robust z-score AP 0.400 and STL residual AP 0.256 | [`phase2c_anomaly_forecast.csv`](https://github.com/Mark007-R/AI-Personal-Finance-Manager/blob/b7ff703a10c266909f6144652b498482464dc42c/results/phase2c_anomaly_forecast.csv) |
 | Recurring charges | precision **0.988**, recall **1.000** | same |
 | Duplicate detection | precision 0.400, recall 0.667 — **the weakest component** | same |
 | Cash-flow forecast | Prophet MAPE **15.8%**, beating seasonal-naive 18.9% and naive 26.3% | same |
-| Active learning | hard-case accuracy **0.521 → 0.887** in 6 rounds, vs 0.606 for random sampling | [`phase5_active_learning.csv`](results/phase5_active_learning.csv) |
-| OCR robustness | amount accuracy degrades 0.72 (gold text) → 0.58 (phone photo) → 0.33 (faded) | [`phase5_ocr.csv`](results/phase5_ocr.csv) |
-| Production checks | **12/12 passing**, p95 latency 22.7 ms | [`phase7_production.json`](results/phase7_production.json) |
+| Active learning | hard-case accuracy **0.521 → 0.887** in 6 rounds, vs 0.606 for random sampling | [`phase5_active_learning.csv`](https://github.com/Mark007-R/AI-Personal-Finance-Manager/blob/b7ff703a10c266909f6144652b498482464dc42c/results/phase5_active_learning.csv) |
+| OCR robustness | amount accuracy degrades 0.72 (gold text) → 0.58 (phone photo) → 0.33 (faded) | [`phase5_ocr.csv`](https://github.com/Mark007-R/AI-Personal-Finance-Manager/blob/b7ff703a10c266909f6144652b498482464dc42c/results/phase5_ocr.csv) |
+| Production checks | **12/12 passing**, p95 latency 22.7 ms | [`phase7_production.json`](https://github.com/Mark007-R/AI-Personal-Finance-Manager/blob/b7ff703a10c266909f6144652b498482464dc42c/results/phase7_production.json) |
 
 ---
 
@@ -145,14 +151,7 @@ python db/seed_demo.py                                        # optional: demo a
 flask --app app run                                           # → http://localhost:5000
 ```
 
-Research stack — the experiment scripts under `results/`:
-
-```bash
-pip install -r requirements-experiments.txt
-python results/run_day2_extraction.py               # extraction bake-off
-python results/run_day3_categorize.py               # categorizer bake-off
-python results/run_day4_anomaly_forecast.py         # anomaly + forecast
-```
+The experiment scripts and raw outputs behind the measured results above are archived at commit [`b7ff703`](https://github.com/Mark007-R/AI-Personal-Finance-Manager/tree/b7ff703a10c266909f6144652b498482464dc42c/results).
 
 Tests: `pytest tests/ -q`. Regenerate the diagram: `python assets/make_architecture.py`.
 

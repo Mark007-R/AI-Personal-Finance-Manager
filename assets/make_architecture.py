@@ -130,7 +130,7 @@ text(490, 523, "below the 0.34 keyword floor. It fails silently and confidently,
 
 text(30, 566, "All experiments use public SROIE receipts or synthetic transactions — no real financial data",
      f_lbl, GREEN, anchor="lm")
-text(30, 586, "Every figure comes from a committed artifact under results/ · 66 tests",
+text(30, 586, "Every figure comes from a committed artifact (archived at commit b7ff703) · 122 tests",
      f_lbl, MUTED, anchor="lm")
 
 img.resize((W // S, H // S), Image.LANCZOS).save(OUT, "PNG", optimize=True)

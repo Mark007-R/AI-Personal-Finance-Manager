@@ -1,8 +1,7 @@
 /* ==========================================================================
    FinTrack paper — the one token block every FinTrack page shares.
 
-   Linked FIRST by every page (templates/base.html, the legacy give_option.html
-   and the root index.html), so app.css, index.css and style2.css all read one
+   Linked FIRST by every page (templates/base.html), so app.css reads one
    palette. Look: mark.dev paper (Mark007-R.github.io). Only the ACCENT and
    SERIES blocks are project-specific — FinTrack is Pine.
    ========================================================================== */
