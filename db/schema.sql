@@ -6,9 +6,6 @@
 -- catalog tables (RecurringDeposits / Bonds / Banks / BankStockData /
 -- BankLifeInsurance) are OPTIONAL: invest.py falls back to a built-in catalog
 -- when they are absent, so they are not created here.
---
--- Existing databases created before the multi-tenancy fix should apply
--- db/migrations/001_add_user_id_to_transactions.sql instead.
 
 CREATE TABLE IF NOT EXISTS users1 (
     id        INT AUTO_INCREMENT PRIMARY KEY,

@@ -12,7 +12,7 @@ Each component was benchmarked against the simplest thing that could work **and*
 
 [![FinTrack demo: overview, transactions, insights, receipt scanning and investing](assets/demo-poster.jpg)](assets/Demo.mp4)
 
-Watch the [82-second demo video](assets/Demo.mp4), recorded on the live app: the overview, searching and adding transactions, insights, scanning a receipt and reviewing it before saving, and the investing page.
+Watch the [82-second demo video](assets/Demo.mp4), recorded on the live app: the overview, searching and adding transactions, insights, scanning a receipt and reviewing it before saving, and the investing page. To try the scanner yourself, upload [`new_sample_bill.pdf`](new_sample_bill.pdf) on the live app's Scan receipt page.
 
 ---
 
