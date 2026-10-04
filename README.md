@@ -8,6 +8,12 @@ Each component was benchmarked against the simplest thing that could work **and*
 
 > Data discipline: every experiment uses **public** (SROIE receipts) or **synthetic** transaction data. No real personal financial data is used anywhere.
 
+## Demo
+
+[![FinTrack demo: overview, transactions, insights, receipt scanning and investing](assets/demo-poster.jpg)](assets/Demo.mp4)
+
+Watch the [82-second demo video](assets/Demo.mp4), recorded on the live app: the overview, searching and adding transactions, insights, scanning a receipt and reviewing it before saving, and the investing page.
+
 ---
 
 ## Architecture
