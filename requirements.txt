@@ -1,5 +1,10 @@
-Flask
-pymysql
-werkzeug
-pdfplumber
-numpy
+# FinTrack web app (Flask UI: app.py + blueprints). The ML API has its own
+# requirements-api.txt.
+flask>=3.0
+werkzeug>=3.0          # password hashing (generate/check_password_hash)
+pymysql>=1.1           # MySQL client (DB_SERVER / DB_PORT / DB_USER / DB_PASS / DB_NAME)
+cryptography>=42.0     # required by pymysql for MySQL 8 caching_sha2_password auth
+numpy>=1.26            # src.insights, src.reco, src.forecast
+scikit-learn>=1.4      # IsolationForest on the Insights page (a median rule is used without it)
+pdfplumber>=0.11       # receipt PDF text (pure Python, no poppler needed)
+gunicorn>=21.2         # production WSGI server
